@@ -1,0 +1,6 @@
+2025-10-01T18:14:15.522152+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2025-10-01T18:14:15.524198+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Error response from daemon: pull access denied for postgresql_ee, repository does not exist or may require 'docker login'
+2025-10-01T18:15:50.391577+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2025-10-01T18:15:50.393176+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Error response from daemon: pull access denied for postgresql_ee, repository does not exist or may require 'docker login'
+2025-10-01T18:16:00.314547+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2025-10-01T18:16:00.315835+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Error response from daemon: pull access denied for postgresql_ee, repository does not exist or may require 'docker login'
