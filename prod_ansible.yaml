@@ -1,0 +1,72 @@
+---
+
+- name: prod switch modifier 
+
+  hosts: []
+
+  vars_prompt:
+ 
+  - name: username
+
+    prompt: What is your username?
+
+    private: false
+ 
+  - name: password
+
+    prompt: What is your password?
+ 
+  - name: commit
+
+    prompt: "Do you want to commit these changes automatically (TRIPLE CHECK SCRIPT)" 
+
+    private: false
+ 
+  - name: config_file
+
+    promt: "Input the file path of the script that you will use"
+
+#   vars:
+
+#     config_file: "" # -e "config_file=./[name of script file].txt"
+
+#  #Put the script in the same folder as this yaml file
+
+  tasks:
+ 
+    - name: Ping hosts
+
+      ansible.builtin.ping:
+ 
+    - name: Correct Hosts
+
+      prompt: Correct?
+ 
+    - name: Current running config
+
+      ansible.netcommon.cli_command:
+
+        command: sh run int b
+
+      register: running
+ 
+    - name: Print run
+
+      debug:
+
+        var: running.stdout_lines
+ 
+    - name: Send to device
+
+      ios_config:
+
+        src: "{{ config_file }}"
+ 
+    - name: Current running config
+
+      ansible.netcommon.cli_command:
+
+        command: sh run int b
+
+      register: running
+ 

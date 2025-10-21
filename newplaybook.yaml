@@ -1,0 +1,42 @@
+---                                             #Must start with 3 lines
+- name: SecondPlaybook                          #Name of the entire playbook (No indentation)
+  hosts: test_switch                            #identifies from the inventory (inventory.ini) what devices will be manipulated
+  tasks:                                        #Starts the list of processes to take place
+  - name: ping my hosts                         #Name of task
+    ansible.builtin.ping:                       #Built in module to ping devices to ensure connectivity
+
+  - name: ATest
+    ansible.netcommon.cli_command:              #Module used to input cli commands into a switch or router (Use to do commands as normal
+      command: enable                           #Command prompts INDENTED
+      command: sh vlan
+    register: vlans                             #Creates a variable to hold the results from sh vlan called "vlans"
+
+  - name: print vlans
+    debug:
+      var: vlans.stdout_lines                   #Prints the exact output from the vlans variable
+
+  - name: print running config
+    ansible.netcommon.cli_command:
+      command: enable
+      command: sh run b
+    register: run
+
+  - name: print run
+    debug:
+      var: run.stdout_lines
+
+  - name: Change things
+    cisco.ios.ios_hostname:                    #Cisco IOS module specifically for modifying hostnames
+      config:                                  #Necessary arguement
+        hostname: Ansible_ChangedThisHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA          #Change
+
+  - name: print running config
+    ansible.netcommon.cli_command:
+        command: enable
+        command: sh run b
+    register: run
+
+  - name: print run
+    debug:
+      var: run.stdout_lines
+

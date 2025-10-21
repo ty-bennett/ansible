@@ -1,0 +1,17 @@
+- name: "Demonstrate connecting to switches"
+  hosts: test
+  gather_facts: no
+
+  tasks:
+    ###
+    #Collect data
+    
+    - name: Gather facts (ios)
+      cisco.ios.ios_facts:
+      when: ansible_network_os == 'cisco.ios.ios'
+
+    ### Demonstrate variables
+    
+    - name: Display some facts
+      debug:
+        msg: "the hostname is {{ ansible_net_hostname }} and the OS is {{ ansible_net_version }}"

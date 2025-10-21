@@ -1,0 +1,65 @@
+---
+- name: Change config of interface after being prompted
+  hosts: test_switch #L3 Device for example  
+  vars_prompt:
+     - name: interface_to_change
+       prompt: What interface would you like to change? (TYPE THE FULL NAME AND NUMBER)
+       private: false
+     - name: l2_or_l3_interface
+       prompt: Will this be an L2 interface? (yes or no) (If \"no\" the configuration will be for an L3 interface)(CASE_SENSITIVE)
+       private: false
+  
+  tasks:
+     - name: Ping my hosts
+       ansible.builtin.ping:
+   
+     - name: Gather facts before changing interface config
+       cisco.ios.ios_l2_interfaces:
+         config:
+         state: gathered
+
+     - name: Do show run of current config
+       ansible.netcommon.cli_command:
+         command: show run int {{ interface_to_change }}
+       register: result
+
+     - name: Display result to terminal windows
+       debug:
+         var: result.stdout_lines
+     - pause:
+         prompt: Do you want this interface to be access or trunk mode? (CASE SENSITIVE)
+       register: mode
+     - set_fact:
+         access_or_trunk: "{{ mode.user_input }}"
+     - pause:
+         prompt: Enter the number of the access vlan
+       register: access
+     - set_fact:
+         access_vlan: "{{access.user_input}}"
+     - pause:
+         prompt: Enter the number of the voice vlan
+       register: voice 
+     - set_fact:
+         voice_vlan: "{{voice.user_input}}"
+
+     - name: Configure the L2 interface
+       cisco.ios.ios_l2_interfaces:
+         config:
+           - name: "{{ interface_to_change }}"
+             mode: "{{ access_or_trunk }}"
+             access:
+               vlan: "{{ access_vlan }}"
+             voice:
+               vlan: "{{ voice_vlan }}"
+       when: access_or_trunk == "access" 
+     - name: Do show run of current config
+       ansible.netcommon.cli_command:
+         command: show run int {{ interface_to_change }}
+       register: result
+
+     - name: Display result to terminal windows
+       debug:
+         var: result.stdout_lines
+
+     
+ 

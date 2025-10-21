@@ -1,0 +1,93 @@
+---
+- name: Test Plays 
+  hosts: test_switch
+  tasks:
+   - name: Ping my hosts
+     ansible.builtin.ping:
+
+   - name: Gather facts before changing interface config
+     cisco.ios.ios_l2_interfaces:
+       config:
+       state: gathered
+
+   - name: Do show run
+     ansible.netcommon.cli_command:
+       command: show run
+     register: result
+
+   - name: Display result to terminal windows
+     debug:
+       var: result.stdout_lines
+   - name: print running config
+     ansible.netcommon.cli_command:
+       command: show run 
+     register: run
+
+   - name: print running config
+     debug:
+       var: run.stdout_lines 
+   - name: Pause to read before changing 
+     ansible.builtin.pause:
+       seconds: 15  
+  
+   - name: Do show run
+     ansible.netcommon.cli_command:
+       command: show int FastEthernet0/3 status
+     register: result
+
+   - name: print to console
+     debug:
+       var: result
+
+   - name: Change interface FastEthernet0/3 to be access
+     cisco.ios.ios_l2_interfaces:
+       config:
+         - name: FastEthernet0/3
+           mode: access
+           access:
+             vlan: 100
+           voice:
+             vlan: 180
+
+   - name: Do show run
+     ansible.netcommon.cli_command:
+       command: show run
+     register: result
+
+   - name: Display result to terminal windows
+     debug:
+       var: result.stdout_lines
+
+   - name: Do show run
+     ansible.netcommon.cli_command:
+       command: show int FastEthernet0/3 status
+     register: result
+
+   - name: print to console
+     debug:
+       var: result
+
+
+       #   - name: Print message
+       #     ansible.builtin.debug:
+       #       msg: Hello world!
+         #   - name: Display some facts
+         #     debug:
+       #       msg: "The hostname is {{ ansible_net_hostname }} and the OS is {{ ansible_net_version }}"
+       #   - name: Run show running config command and display results
+     #     block:
+     #      - name: Do show run
+        #        ansible.netcommon.cli_command:
+        #          command: show run
+            #        register: result
+            #
+            #      - name: Display result to terminal windows
+            #        debug:
+          #          var: result.stdout_lines
+          #     when: ansible_network_os == 'cisco.ios.ios'
+       #   - name: Save running-config 
+       #     cisco.ios.ios_command:
+       #       commands: write memory
+       #     vars:
+       #       ansible_command_timeout: 30
+

@@ -1,0 +1,71 @@
+---
+
+- name: start update process
+  hosts: test
+  tasks:
+    - name: remove inactive/unused packages
+      cisco.ios.ios_command:
+        commands:
+          - command: install remove inactive
+            prompt: Do you want to remove the above files
+            answer: 'y'
+      vars:
+        ansible_command_timeout: 200 
+
+    - name: Enable scp server on switch (will disable after)
+      cisco.ios.ios_config:
+        lines: ip scp server enable
+
+    - name: Start the copy file and install process
+      hosts: test 
+      vars:
+        ansible_network_cli_ssh_type: paramiko
+        cat9200_gold_star_version: cat9k_lite_iosxe.17.12.05.SPA.bin
+        cat9300_gold_star_version: cat9k_iosxe.17.12.05.SPA.bin
+
+      tasks:
+        - name: create backup folder for today to store configs in
+          cisco.ios.ios_config:
+            backup: yes
+            backup_options:
+              dir_path: "./{{ inventory_hostname }}-backup{{ now(utc=true, fmt='%Y-%m-%d') }}"
+          register: backup_output
+
+        - name: Display backup file location
+          debug:
+            var: backup_output.backup_file
+
+        - name: Copy the new image 9200
+          ansible.netcommon.net_put:
+            src: images/{{ cat9200_gold_star_version }}
+            dest: flash:{{ cat9200_gold_star_version }}
+          vars:
+            ansible_command_timeout: 500 
+          when: ansible_net_model is search("^C92(.*)")
+
+        - name: Copy the new image 9300
+          ansible.netcommon.net_put:
+            src: images/{{ cat9300_gold_star_version }}
+            dest: flash:{{ cat9300_gold_star_version }}
+          vars:
+            ansible_command_timeout: 500 
+          when: ansible_net_model is search("^C93(.*)")
+        
+        - name: Install add activate commit new file
+          cisco.ios.ios_command:
+            commands:
+              - command: write memory
+              - command: install add file flash:{{ cat9200_gold_star_version }} activate commit prompt-level none
+          when: ansible_net_model is search("^C92(.*)")
+          vars:
+            ansible_command_timeout: 500
+
+        - name: install add activate commit new file for 9300
+          cisco.ios.ios_command:
+            commands:
+              - command: write memory
+              - command: install remove inactive
+              - command: install add file flash:{{ cat9300_gold_star_version }} activate commit prompt-level none
+          when: ansible_net_model is search("^C93(.*)")
+          vars:
+            ansible_command_timeout: 600

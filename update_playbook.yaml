@@ -1,0 +1,124 @@
+--- 
+
+- name: Update switch OS if not already updated
+  hosts: test
+
+  vars:
+    cat9k_correct_version: 17.12.04 # change as necesarry
+    cat3k_correct_version: 16.12.12 
+    confirm_timeout: 1
+
+  tasks:
+    - name: print out gathered switch model and OS
+      ansible.builtin.debug:
+        msg: " Switch model is {{ ansible_net_model }} and switch version is {{ ansible_net_version }}"
+
+    - name: Let user know if the version is out of date for 9200 
+      ansible.builtin.debug:
+        msg: 
+          - "The correct version is {{ cat9k_correct_version }} for Cat9000 series switches, you are out of compliance."
+      when: ansible_net_version != cat9k_correct_version and ansible_net_model is search("^C9(.*)")
+
+    - name: Let user know if the version is out of date for the 3850
+      ansible.builtin.debug:
+        msg:
+          - "The correct version is {{ cat3k_correct_version }} for Cat3000 series switches"
+      when: ansible_net_model == 'WS-C3850-24T' and ansible_net_version != cat3k_correct_version
+    
+    - name: remove inactive/unused packages
+      cisco.ios.ios_command:
+        commands:
+          - command: install remove inactive
+            prompt: Do you want to remove the above files
+            answer: 'y'
+      vars:
+        ansible_command_timeout: 200 
+
+    - name: Enable scp server on switch (will disable after)
+      cisco.ios.ios_config:
+        lines: 
+          - ip scp server enable
+
+- name: Start the copy file and install process
+  hosts: test
+  vars:
+    ansible_network_cli_ssh_type: paramiko
+    cat9200_gold_star_version: cat9k_lite_iosxe.17.12.04.SPA.bin
+    cat9300_gold_star_version: cat9k_iosxe.17.12.05.SPA.bin
+
+  tasks:
+    - name: create backup folder for today to store configs in
+      cisco.ios.ios_config:
+        backup: yes
+        backup_options:
+          dir_path: "./{{ inventory_hostname }}-backup{{ now(utc=true, fmt='%Y-%m-%d') }}"
+      register: backup_output
+
+    - name: Display backup file location
+      debug:
+        var: backup_output.backup_file
+
+    - name: Copy the new image 9200
+      ansible.netcommon.net_put:
+        src: images/{{ cat9200_gold_star_version }}
+        dest: flash:{{ cat9200_gold_star_version }}
+      vars:
+        ansible_command_timeout: 600 
+      when: ansible_net_model is search("^C92(.*)")
+
+    - name: Copy the new image 9300
+      ansible.netcommon.net_put:
+        src: images/{{ cat9300_gold_star_version }}
+        dest: flash:{{ cat9300_gold_star_version }}
+      vars:
+        ansible_command_timeout: 600 
+      when: ansible_net_model is search("^C93(.*)")
+    
+    - name: Install add activate commit new file
+      cisco.ios.ios_command:
+        commands:
+          - command: write memory
+          - command: install add file flash:{{ cat9200_gold_star_version }} activate commit prompt-level none
+      when: ansible_net_model is search("^C92(.*)")
+      vars:
+        ansible_command_timeout: 600
+
+    - name: install add activate commit new file for 9300
+      cisco.ios.ios_command:
+        commands:
+          - command: write memory
+          - command: install remove inactive
+          - command: install add file flash:{{ cat9300_gold_star_version }} activate commit prompt-level none
+      when: ansible_net_model is search("^C93(.*)")
+      vars:
+        ansible_command_timeout: 600
+
+    - name: wait for reload to start
+      ansible.builtin.pause:
+        seconds: 30
+
+    - name: wait for switch to come back online
+      ansible.builtin.wait_for_connection:
+
+    - name: remove old packages
+      cisco.ios.ios_command:
+        commands:
+          - command: install remove inactive
+            prompt: Do you want to remove the above files
+            answer: 'y'
+    - name: remove ip scp server
+      cisco.ios.ios_config:
+        lines:
+          - no ip scp server enable
+    - name: write memory
+      cisco.ios.ios_command:
+        commands:
+          - command: write memory
+    - name: show current version
+      cisco.ios.ios_command:
+        commands:
+          - command: show version
+      register: show_version_output
+    - name: print sho ver
+      debug:
+        var: show_version_output
